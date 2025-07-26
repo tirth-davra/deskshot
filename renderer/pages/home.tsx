@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
+import { useRouter } from "next/router";
+import { ThemeContext } from "./_app";
 
 const LOGO_URL = "/images/icon-512x512.png"; // Deskshot logo
 
@@ -64,6 +66,8 @@ const testTasks = {
 };
 
 export default function Home() {
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const router = useRouter();
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [time, setTime] = useState(0);
@@ -75,6 +79,14 @@ export default function Home() {
   const [totalTime, setTotalTime] = useState(0); // Total time across all sessions
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const screenshotIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Authentication check
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    if (!isAuthenticated) {
+      router.push("/login");
+    }
+  }, [router]);
 
   // Timer logic
   useEffect(() => {
@@ -193,6 +205,12 @@ export default function Home() {
     // Don't clear activeTask here - keep the tracking state
   };
 
+  // Logout function
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated");
+    router.push("/login");
+  };
+
   // Pause tracking
   const pauseTracking = () => {
     setIsPaused(true);
@@ -261,23 +279,51 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-green-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-green-100 dark:from-gray-900 dark:via-gray-800 dark:to-green-900 flex">
+      {/* Theme Switcher */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={toggleTheme}
+          className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? (
+            <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+          )}
+        </button>
+      </div>
+
       {/* Left Section - Projects (70%) */}
       <div className="w-[70%] p-8">
         {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome, John Doe
-          </h1>
-          <p className="text-gray-300 text-lg">
-            Manage your projects and track your time efficiently
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
+              Welcome, John Doe
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 text-lg">
+              Manage your projects and track your time efficiently
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors"
+            title="Logout"
+          >
+            Logout
+          </button>
         </div>
 
         {/* Projects List or Tasks List */}
         {!selectedProjectForTasks ? (
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-white mb-6">
+            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
               Your Projects List
             </h2>
 
@@ -307,17 +353,9 @@ export default function Home() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => startProjectTracking(project)}
-                        disabled={
-                          isRunning &&
-                          !(
-                            activeProject?.id === project.id ||
-                            activeTask?.projectId === project.id
-                          )
-                        }
+                        disabled={isRunning}
                         className={`p-3 rounded-lg transition-all ${
-                          isRunning &&
-                          activeProject?.id !== project.id &&
-                          (!activeTask || activeTask.projectId !== project.id)
+                          isRunning
                             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                             : activeProject?.id === project.id ||
                               (activeTask &&
@@ -389,7 +427,7 @@ export default function Home() {
             <div className="mb-6">
               <button
                 onClick={goBackToProjects}
-                className="flex items-center gap-2 text-white hover:text-gray-300 transition-colors"
+                className="flex items-center gap-2 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               >
                 <svg
                   className="w-5 h-5"
@@ -408,7 +446,7 @@ export default function Home() {
 
             {/* Task List Header */}
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-white mb-2">
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-2">
                 Task List
               </h2>
               <div className="inline-block bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -428,7 +466,7 @@ export default function Home() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
+          <div className="flex-1">
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
                         {task.name}
                       </h3>
@@ -490,12 +528,12 @@ export default function Home() {
       <div className="w-[30%] p-6">
         {/* Current Date */}
         <div className="mb-6">
-          <p className="text-white text-lg font-medium">{currentDate}</p>
+          <p className="text-gray-800 dark:text-white text-lg font-medium">{currentDate}</p>
         </div>
 
         {/* Total Time Tracker */}
         <div className="mb-8">
-          <h3 className="text-white text-lg font-semibold mb-2">
+          <h3 className="text-gray-800 dark:text-white text-lg font-semibold mb-2">
             Total Time Tracker Running
           </h3>
           <div className="text-3xl font-mono font-bold text-green-400">
@@ -514,38 +552,38 @@ export default function Home() {
             </div>
           )}
 
-          {/* Screenshot Preview (last) */}
-          {screenshots[0] && (
+        {/* Screenshot Preview (last) */}
+        {screenshots[0] && (
             <div className="mb-4 flex justify-center">
               <div className="rounded-lg overflow-hidden border-2 border-green-200 dark:border-green-700 shadow-md">
-                <img
-                  src={screenshots[0].url}
-                  alt="Last Screenshot"
+              <img
+                src={screenshots[0].url}
+                alt="Last Screenshot"
                   className="w-full h-24 object-cover"
-                />
-              </div>
+              />
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Timer */}
+        {/* Timer */}
           <div className="text-center mb-4">
             <div className="text-3xl font-mono font-bold text-gray-800 dark:text-white mb-2">
-              {formatTime(time)}
-            </div>
+            {formatTime(time)}
           </div>
+        </div>
 
-          {/* Progress Bar */}
+        {/* Progress Bar */}
           <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full mb-4 overflow-hidden">
-            <div
-              className="h-2 rounded-full bg-gradient-to-r from-green-400 to-green-600 transition-all"
-              style={{ width: `${progress * 100}%` }}
-            ></div>
-          </div>
+          <div
+            className="h-2 rounded-full bg-gradient-to-r from-green-400 to-green-600 transition-all"
+            style={{ width: `${progress * 100}%` }}
+          ></div>
+        </div>
 
-          {/* Controls */}
+        {/* Controls */}
           <div className="flex gap-2 justify-center mb-4">
-            {!isRunning ? (
-              <button
+          {!isRunning ? (
+            <button
                 onClick={() => {
                   if (activeProject) {
                     startProjectTracking(activeProject);
@@ -559,61 +597,61 @@ export default function Home() {
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-green-500 hover:bg-green-600 text-white"
                 }`}
-              >
-                Start Tracking
-              </button>
-            ) : isPaused ? (
-              <button
-                onClick={resumeTracking}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-              >
-                Resume
-              </button>
-            ) : (
-              <button
-                onClick={pauseTracking}
-                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
-              >
-                Pause
-              </button>
-            )}
-            <button
-              onClick={stopTracking}
-              className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
             >
-              Stop
+              Start Tracking
             </button>
-          </div>
+          ) : isPaused ? (
+            <button
+              onClick={resumeTracking}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+            >
+              Resume
+            </button>
+          ) : (
+            <button
+              onClick={pauseTracking}
+                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+            >
+              Pause
+            </button>
+          )}
+          <button
+            onClick={stopTracking}
+              className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+          >
+            Stop
+          </button>
+        </div>
 
-          {/* Screenshot Gallery */}
+        {/* Screenshot Gallery */}
           <div>
             <div className="flex items-center mb-2">
               <span className="font-semibold text-gray-700 dark:text-gray-200 text-sm">
-                Screenshots
-              </span>
+              Screenshots
+            </span>
               <span className="ml-1 text-xs text-gray-400">(last 3)</span>
-            </div>
-            {screenshots.length === 0 ? (
+          </div>
+          {screenshots.length === 0 ? (
               <div className="text-gray-400 text-xs">No screenshots yet.</div>
-            ) : (
+          ) : (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {screenshots.slice(0, 3).map((shot, idx) => (
-                  <div
-                    key={idx}
+                <div
+                  key={idx}
                     className="relative group rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm flex-shrink-0"
-                  >
-                    <img
-                      src={shot.url}
-                      alt={`Screenshot ${idx + 1}`}
+                >
+                  <img
+                    src={shot.url}
+                    alt={`Screenshot ${idx + 1}`}
                       className="w-16 h-12 object-cover"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs text-center rounded-b opacity-0 group-hover:opacity-100 transition-opacity py-1">
-                      {shot.timestamp.toLocaleTimeString()}
-                    </div>
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs text-center rounded-b opacity-0 group-hover:opacity-100 transition-opacity py-1">
+                    {shot.timestamp.toLocaleTimeString()}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
+          )}
           </div>
         </div>
       </div>
