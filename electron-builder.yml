@@ -1,0 +1,54 @@
+appId: com.deskshot.app
+productName: Deskshot
+copyright: Copyright © 2025 Yoshihide Shiono
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - from: .
+    filter:
+      - package.json
+      - app
+publish: null
+
+# Icon configuration
+icon: ./resources/icon.ico
+
+# Windows configuration - no code signing
+win:
+  icon: ./resources/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  artifactName: "${productName}-Setup-${version}.${ext}"
+  publisherName: "Yoshihide Shiono"
+
+# NSIS specific configuration
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "Deskshot"
+  installerIcon: "./resources/icon.ico"
+  uninstallerIcon: "./resources/icon.ico"
+  installerHeaderIcon: "./resources/icon.ico"
+  deleteAppDataOnUninstall: true
+
+mac:
+  icon: ./resources/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+linux:
+  icon: resources/icon.ico
+  target:
+    - target: AppImage
+      arch:
+        - x64
